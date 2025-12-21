@@ -5,10 +5,24 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-APPTOKEN="<APP_TOKEN>"
-APPID="<APP_ID>"
-WABAID="<WABA_ID>"
-APIVERSION="<CLOUD_API_VERSION>"
+#!/bin/bash
+
+# 1. Tenter de charger le fichier .env s'il existe (pour le local)
+if [ -f .env ]; then
+    export $(echo $(grep -v '^#' .env | xargs echo))
+fi
+
+# 2. Assigner les variables (Bash prendra celles du système si .env est absent)
+APPTOKEN="${APP_TOKEN}"
+APPID="${APP_ID}"
+WABAID="${WABA_ID}"
+APIVERSION="${CLOUD_API_VERSION}"
+
+# 3. Vérification de sécurité
+if [ -z "$APPTOKEN" ]; then
+    echo "Erreur : La variable APP_TOKEN n'est pas définie (ni en local, ni sur Render)."
+    exit 1
+fi
 
 echo "Downloading image assets from Meta"
 mkdir public
