@@ -13,7 +13,7 @@ if [ -f .env ]; then
 fi
 
 # 2. Assigner les variables (Bash prendra celles du système si .env est absent)
-APPTOKEN="${APP_TOKEN}"
+APPTOKEN="${ACCESS_TOKEN}"
 APPID="${APP_ID}"
 WABAID="${WABA_ID}"
 APIVERSION="${APIVERSION}"
@@ -35,7 +35,7 @@ declare -A handles
 for image in "groceries" "salad_bowl" "sheet_pan_dinner" "strawberries"; do
     echo "Uploading $image"
 
-    file_length=$(stat -f%z "public/$image.jpg")
+    file_length=$(stat -c%s "public/$image.jpg")
 
     response=$(curl -s -X POST "https://graph.facebook.com/${APIVERSION}/${APPID}/uploads?file_name=${image}.jpg&file_length=${file_length}&file_type=image/jpg&access_token=${APPTOKEN}")
 
