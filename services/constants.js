@@ -2,7 +2,7 @@
 
 module.exports = Object.freeze({
   // CONFIG
-  ADMIN_PHONE_NUMBER: "33612345678", // REMPLACE PAR TON NUMÉRO (format international sans +)
+  ADMIN_PHONE_NUMBER: "33758796551", // REMPLACE PAR TON NUMÉRO (format international sans +)
 
   // COMMANDES SPECIALES
   CMD_TAKEOVER: "@takeover", // L'humain prend la main
