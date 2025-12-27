@@ -1,90 +1,11 @@
-/**
- * Copyright 2021-present, Facebook, Inc. All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 "use strict";
 
+// Note : Si tu utilises les Quick Replies du template, tu devras adapter le code conversation.js 
+//pour lire le payload des boutons du template, qui arrive parfois différemment des boutons interactifs simples).
 const constants = require("./constants");
-const config = require("./config");
 const GraphApi = require('./graph-api');
 const Message = require('./message');
-const Status = require('./status');
-const Cache = require('./redis');
-
-
-function sendTryOutDemoMessage(messageId, senderPhoneNumberId, recipientPhoneNumber, messageBody) {
-  return GraphApi.messageWithInteractiveReply(
-    messageId,
-    senderPhoneNumberId,
-    recipientPhoneNumber,
-    messageBody,
-    [
-      {
-        id: constants.REPLY_INTERACTIVE_MEDIA_ID,
-        title: constants.REPLY_INTERACTIVE_WITH_MEDIA_CTA,
-      },
-      {
-        id: constants.REPLY_MEDIA_CAROUSEL_ID,
-        title: constants.REPLY_MEDIA_CARD_CAROUSEL_CTA,
-      },
-      {
-        id: constants.REPLY_OFFER_ID,
-        title: constants.REPLY_OFFER_CTA,
-      }
-    ]
-  );
-}
-
-function sendInteractiveMediaMessage(messageId, senderPhoneNumberId, recipientPhoneNumber) {
-  return GraphApi.messageWithUtilityTemplate(
-    messageId,
-    senderPhoneNumberId,
-    recipientPhoneNumber,
-    {
-      templateName: "grocery_delivery_utility",
-      locale: "en_US",
-      imageLink: "https://scontent.xx.fbcdn.net/mci_ab/uap/asset_manager/id/?ab_b=e&ab_page=AssetManagerID&ab_entry=1530053877871776",
-    }
-  );
-}
-
-function sendLimitedTimeOfferMessage(messageId, senderPhoneNumberId, recipientPhoneNumber) {
-  return GraphApi.messageWithLimitedTimeOfferTemplate(
-    messageId,
-    senderPhoneNumberId,
-    recipientPhoneNumber,
-    {
-      templateName: "strawberries_limited_offer",
-      locale: "en_US",
-      imageLink: "https://scontent.xx.fbcdn.net/mci_ab/uap/asset_manager/id/?ab_b=e&ab_page=AssetManagerID&ab_entry=1393969325614091",
-      offerCode: "BERRIES20",
-    }
-  );
-}
-
-function sendMediaCarouselMessage(messageId, senderPhoneNumberId, recipientPhoneNumber) {
-  return GraphApi.messageWithMediaCardCarousel(
-    messageId,
-    senderPhoneNumberId,
-    recipientPhoneNumber,
-    {
-      templateName: "recipe_media_carousel",
-      locale: "en_US",
-      imageLinks: [
-        "https://scontent.xx.fbcdn.net/mci_ab/uap/asset_manager/id/?ab_b=e&ab_page=AssetManagerID&ab_entry=1389202275965231",
-        "https://scontent.xx.fbcdn.net/mci_ab/uap/asset_manager/id/?ab_b=e&ab_page=AssetManagerID&ab_entry=3255815791260974"
-      ]
-    }
-  );
-}
-
-async function markMessageForFollowUp(messageId) {
-  await Cache.insert(messageId);
-}
-
+const Store = require('./store'); // Le fichier mémoire qu'on a créé
 
 module.exports = class Conversation {
   constructor(phoneNumberId) {
@@ -93,60 +14,162 @@ module.exports = class Conversation {
 
   static async handleMessage(senderPhoneNumberId, rawMessage) {
     const message = new Message(rawMessage);
+    const userPhone = message.senderPhoneNumber;
+    const messageBody = rawMessage.text?.body || ""; // Si c'est du texte
 
-    switch (message.type) {
-      case constants.REPLY_INTERACTIVE_MEDIA_ID:
-        let interactiveMediaResponse = await sendInteractiveMediaMessage(
-          message.id,
-          senderPhoneNumberId,
-          message.senderPhoneNumber
-        );
-        await markMessageForFollowUp(interactiveMediaResponse.messages[0].id);
-        break;
-      case constants.REPLY_MEDIA_CAROUSEL_ID:
-        let mediaCarouselResponse = await sendMediaCarouselMessage(
-          message.id,
-          senderPhoneNumberId,
-          message.senderPhoneNumber
-        );
-        await markMessageForFollowUp(mediaCarouselResponse.messages[0].id);
-        break;
-      case constants.REPLY_OFFER_ID:
-        let ltoResponse = await sendLimitedTimeOfferMessage(
-          message.id,
-          senderPhoneNumberId,
-          message.senderPhoneNumber
-        );
-        await markMessageForFollowUp(ltoResponse.messages[0].id);
-        break;
-      default:
-        sendTryOutDemoMessage(
-          message.id,
-          senderPhoneNumberId,
-          message.senderPhoneNumber,
-          constants.APP_DEFAULT_MESSAGE
-        );
-        break;
-    }
-  }
-
-  static async handleStatus(senderPhoneNumberId, rawStatus) {
-    const status = new Status(rawStatus);
-
-    // Only handle delivered and read statuses
-    if (!(status.status === 'delivered' || status.status === 'read')) {
+    // --- 1. GESTION DU HANDOVER (PRIORITÉ ABSOLUE) ---
+    
+    // Commande : @takeover (L'humain prend le contrôle)
+    if (messageBody.toLowerCase().includes(constants.CMD_TAKEOVER)) {
+      Store.setBotPaused(userPhone, true);
+      await GraphApi.sendTextMessage(senderPhoneNumberId, userPhone, constants.MSG_HANDOVER_START);
+      // Notifier l'admin (toi)
+      await GraphApi.sendTextMessage(senderPhoneNumberId, constants.ADMIN_PHONE_NUMBER, `⚠️ TAKEOVER activé pour le client ${userPhone}`);
       return;
     }
 
-    // Only send a follow up message if the current message is flagged
-    // as needing one in the cache.
-    if (await Cache.remove(status.messageId)) {
-      await sendTryOutDemoMessage(
-        undefined,
-        senderPhoneNumberId,
-        status.recipientPhoneNumber,
-        constants.APP_TRY_ANOTHER_MESSAGE
-      );
+    // Commande : @bot (Le bot reprend le contrôle)
+    if (messageBody.toLowerCase().includes(constants.CMD_BOT)) {
+      Store.setBotPaused(userPhone, false);
+      await GraphApi.sendTextMessage(senderPhoneNumberId, userPhone, constants.MSG_HANDOVER_END);
+      // On relance le menu principal pour réengager le client
+      await this.sendWelcomeMenu(message.id, senderPhoneNumberId, userPhone);
+      return;
     }
+
+    // Si le bot est en pause, on arrête tout ici. Le client parle à l'humain.
+    if (Store.isBotPaused(userPhone)) {
+      console.log(`Bot en pause pour ${userPhone}, message ignoré par la logique auto.`);
+      return;
+    }
+
+    // --- 2. LOGIQUE DU BOT DE VENTE ---
+
+    try {
+      // Analyse du type de message
+      if (message.type === 'unknown' && rawMessage.type === 'text') {
+        // C'est un message texte libre de l'utilisateur
+        // TODO: Plus tard, c'est ICI que tu mettras GEMINI AI pour répondre intelligemment.
+        // Pour l'instant, on renvoie au menu si on ne comprend pas.
+        await this.sendWelcomeMenu(message.id, senderPhoneNumberId, userPhone);
+      } 
+      else {
+        // C'est une interaction (clic bouton)
+        await this.routeButtonAction(message.id, senderPhoneNumberId, userPhone, message.type);
+      }
+    } catch (error) {
+      console.error("Erreur dans le flux:", error);
+    }
+  }
+
+  // --- ROUTEUR DES ACTIONS (Switch Case géant) ---
+  static async routeButtonAction(msgId, senderId, recipientId, buttonId) {
+    switch (buttonId) {
+      
+      // -- NAVIGATION GENERALE --
+      case constants.BTN_BACK_HOME:
+        await this.sendWelcomeMenu(msgId, senderId, recipientId);
+        break;
+
+      // -- BRANCHE PRODUITS --
+      case constants.BTN_MENU_PRODUCTS:
+      case constants.BTN_BACK_PRODUCTS:
+        await this.sendProductCatalog(msgId, senderId, recipientId);
+        break;
+
+      // -- DETAIL PRODUIT (Exemple Caméra) --
+      case constants.BTN_CAT_CAMERAS:
+        await this.sendProductDetailCamera(msgId, senderId, recipientId);
+        break;
+
+      // -- ACTION D'ACHAT --
+      case constants.BTN_BUY_CAM_PRO:
+        await this.sendClosingDeal(msgId, senderId, recipientId, "Caméra Pro X1");
+        break;
+
+      // -- DEMANDE HUMAIN --
+      case constants.BTN_TALK_HUMAN:
+        // On ne met pas en pause tout de suite, on notifie juste l'admin
+        await GraphApi.sendTextMessage(senderId, recipientId, "Un expert a été notifié. Posez votre question ici 👇");
+        await GraphApi.sendTextMessage(senderId, constants.ADMIN_PHONE_NUMBER, `🚨 LEAD CHAUD : ${recipientId} demande un humain !`);
+        break;
+
+      default:
+        // Par défaut, retour accueil
+        await this.sendWelcomeMenu(msgId, senderId, recipientId);
+    }
+  }
+
+  // --- FONCTIONS D'ENVOI (LES "STEPS") ---
+
+  // STEP 1: Accueil
+  static async sendWelcomeMenu(msgId, senderId, recipientId) {
+    // Utilise un Template avec image pour faire pro
+    // Si tu n'as pas le template, utilise messageWithInteractiveReply avec une phrase d'accroche
+    await GraphApi.messageWithUtilityTemplate(msgId, senderId, recipientId, {
+      templateName: constants.TPL_WELCOME, // "welcome_menu_v1"
+      locale: "fr",
+      imageLink: "https://via.placeholder.com/800x400?text=SecurHome", // Mets ton lien d'image ici
+      parameters: ["Bienvenue"] // Variable {{1}}
+    });
+    
+    // On enchaîne immédiatement avec les boutons (car les templates n'ont que 2-3 boutons max parfois limités)
+    // Ou mieux : Le template contient déjà les boutons Quick Reply (voir section Template ci-dessous)
+  }
+
+  // Alternative sans template pour démarrer tout de suite
+  /* static async sendWelcomeMenu(msgId, senderId, recipientId) {
+    await GraphApi.messageWithInteractiveReply(
+      msgId, senderId, recipientId,
+      "👋 Bienvenue chez SecurHome.\nNous sécurisons ce qui compte pour vous.\n\nQue souhaitez-vous faire ?",
+      [
+        { id: constants.BTN_MENU_PRODUCTS, title: "Voir les Produits 📦" },
+        { id: constants.BTN_TALK_HUMAN, title: "Parler à un expert 📞" },
+        { id: constants.BTN_MENU_SERVICES, title: "Nos Services 🛠️" }
+      ]
+    );
+  }
+  */
+
+  // STEP 2: Catalogue
+  static async sendProductCatalog(msgId, senderId, recipientId) {
+    await GraphApi.messageWithInteractiveReply(
+      msgId, senderId, recipientId,
+      "🔍 Quelle catégorie vous intéresse ?",
+      [
+        { id: constants.BTN_CAT_CAMERAS, title: "Caméras 📹" },
+        { id: constants.BTN_CAT_ALARMS, title: "Alarmes 🚨" },
+        { id: constants.BTN_BACK_HOME, title: "Retour Accueil 🏠" }
+      ]
+    );
+  }
+
+  // STEP 3: Détail Produit (Vente)
+  static async sendProductDetailCamera(msgId, senderId, recipientId) {
+    // Ici, on envoie d'abord une belle image ou un carousel
+    // Puis le texte de vente avec bouton Achat
+    
+    // Exemple simple Interactif
+    await GraphApi.messageWithInteractiveReply(
+      msgId, senderId, recipientId,
+      "*Caméra Pro X1* 📸\n\n✅ Vision nocturne 4K\n✅ Détection IA\n✅ Batterie 1 an\n\nPrix: 199€ (Promo -20% ce soir)",
+      [
+        { id: constants.BTN_BUY_CAM_PRO, title: "Commander ✅" },
+        { id: constants.BTN_BACK_PRODUCTS, title: "Retour Catalogue ↩️" },
+        { id: constants.BTN_TALK_HUMAN, title: "Question ?" }
+      ]
+    );
+  }
+
+  // STEP 4: Closing / Capture de Lead
+  static async sendClosingDeal(msgId, senderId, recipientId, productName) {
+    // 1. Remerciement
+    await GraphApi.sendTextMessage(senderId, recipientId, `Excellent choix pour la ${productName} ! 🚀`);
+    
+    // 2. Lien de paiement ou demande d'infos (Ici on simule un lien)
+    await GraphApi.sendTextMessage(senderId, recipientId, "Cliquez ici pour finaliser votre commande sécurisée : https://mon-lien-stripe.com/p/xyz");
+    
+    // 3. Notification Admin
+    await GraphApi.sendTextMessage(senderId, constants.ADMIN_PHONE_NUMBER, `💰 NOUVELLE COMMANDE EN COURS : ${recipientId} sur ${productName}`);
   }
 };

@@ -1,28 +1,36 @@
-/**
- * Copyright 2021-present, Facebook, Inc. All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 "use strict";
 
 module.exports = Object.freeze({
-  // Expected messages from the user
-  USER_START_MESSAGE: "Tap send to get started",
+  // CONFIG
+  ADMIN_PHONE_NUMBER: "33612345678", // REMPLACE PAR TON NUMÉRO (format international sans +)
 
-  // Response messages
-  APP_DEFAULT_MESSAGE: "Welcome to Jasper's Market",
-  APP_TRY_ANOTHER_MESSAGE: "Is there anything else we can help you with?",
+  // COMMANDES SPECIALES
+  CMD_TAKEOVER: "@takeover", // L'humain prend la main
+  CMD_BOT: "@bot",           // Le bot reprend la main
 
+  // MESSAGES TEXTE
+  MSG_WELCOME: "Bienvenue chez SecurHome 🏠. Protégez ce qui compte le plus.",
+  MSG_HANDOVER_START: "👨‍💻 Un conseiller va prendre le relais. Le bot est en pause.",
+  MSG_HANDOVER_END: "🤖 Le bot est de retour en ligne.",
+  MSG_FALLBACK: "Je n'ai pas compris. Voici ce que je peux faire :",
 
-  // CTA texts
-  REPLY_INTERACTIVE_WITH_MEDIA_CTA: "Shop online",
-  REPLY_MEDIA_CARD_CAROUSEL_CTA: "Get recipe ideas",
-  REPLY_OFFER_CTA: "Current promo",
+  // TEMPLATE NAMES (À créer sur Meta)
+  TPL_WELCOME: "welcome_menu_v1",
+  TPL_PRODUCT_DETAIL: "product_detail_v1",
+  TPL_PROMO: "promo_alert_v1",
 
-  // Reply Button IDs
-  REPLY_INTERACTIVE_MEDIA_ID: "reply-interactive-with-media",
-  REPLY_MEDIA_CAROUSEL_ID: "reply-media-card-carousel",
-  REPLY_OFFER_ID: "reply-offer"
+  // BUTTON IDs (La logique de navigation)
+  // Format: ACTION_CONTEXTE
+  BTN_MENU_PRODUCTS: "menu_products",
+  BTN_MENU_SERVICES: "menu_services",
+  BTN_TALK_HUMAN: "talk_human",
+  
+  BTN_CAT_CAMERAS: "cat_cameras",
+  BTN_CAT_ALARMS: "cat_alarms",
+
+  BTN_PROD_CAM_PRO: "prod_cam_pro",
+  BTN_BUY_CAM_PRO: "buy_cam_pro",
+  
+  BTN_BACK_HOME: "nav_home",
+  BTN_BACK_PRODUCTS: "nav_back_products"
 });

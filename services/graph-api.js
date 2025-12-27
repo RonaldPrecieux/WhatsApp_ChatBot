@@ -1,10 +1,3 @@
-/**
- * Copyright 2021-present, Facebook, Inc. All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 "use strict";
 
 const { FacebookAdsApi } = require('facebook-nodejs-business-sdk');
@@ -47,6 +40,18 @@ module.exports = class GraphApi {
     }
   }
 
+  static async sendTextMessage(senderPhoneNumberId, recipientPhoneNumber, text) {
+    const requestBody = {
+      messaging_product: "whatsapp",
+      to: recipientPhoneNumber,
+      type: "text",
+      text: { body: text }
+    };
+    return this.#makeApiCall(null, senderPhoneNumberId, requestBody);
+  }
+
+
+
   static async messageWithInteractiveReply(messageId, senderPhoneNumberId, recipientPhoneNumber, messageText, replyCTAs) {
     const requestBody = {
       messaging_product: "whatsapp",
@@ -72,35 +77,40 @@ module.exports = class GraphApi {
     return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
   }
 
-  static async messageWithUtilityTemplate(messageId, senderPhoneNumberId, recipientPhoneNumber, options) {
-    const { templateName, locale, imageLink } = options;
-    const requestBody = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: recipientPhoneNumber,
-      type: "template",
-      template: {
-        "name": templateName,
-        "language": {
-          "code": locale
-        },
-        "components": [
-          {
-            "type": "header",
-            "parameters": [
-              {
-                "type": "image",
-                "image": {
-                  "link": imageLink
-                }
-              }
-            ]
-          },
-        ]
+ static async messageWithUtilityTemplate(messageId, senderPhoneNumberId, recipientPhoneNumber, options) {
+      // ... (Ton code existant)
+      // Je le réécris pour être sûr qu'il gère les paramètres dynamiques
+      const { templateName, locale, imageLink, parameters = [] } = options;
+      const components = [];
+      
+      // Header Image
+      if(imageLink) {
+          components.push({
+            type: "header",
+            parameters: [{ type: "image", image: { link: imageLink } }]
+          });
       }
-    };
 
-    return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
+      // Body parameters (variables {{1}}, {{2}})
+      if(parameters.length > 0) {
+          components.push({
+            type: "body",
+            parameters: parameters.map(p => ({ type: "text", text: p }))
+          });
+      }
+
+      const requestBody = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: recipientPhoneNumber,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: locale },
+          components: components
+        }
+      };
+      return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
   }
 
   static async messageWithLimitedTimeOfferTemplate(messageId, senderPhoneNumberId, recipientPhoneNumber, options) {
