@@ -106,12 +106,22 @@ module.exports = class Conversation {
   static async sendWelcomeMenu(msgId, senderId, recipientId) {
     // Utilise un Template avec image pour faire pro
     // Si tu n'as pas le template, utilise messageWithInteractiveReply avec une phrase d'accroche
-    await GraphApi.messageWithUtilityTemplate(msgId, senderId, recipientId, {
-      templateName: constants.TPL_WELCOME, // "welcome_menu_v1"
-      locale: "fr",
-      imageLink: "https://via.placeholder.com/800x400?text=SecurHome", // Mets ton lien d'image ici
-      parameters: ["Bienvenue"] // Variable {{1}}
-    });
+     await GraphApi.messageWithInteractiveReply(
+      msgId, senderId, recipientId,
+      "*Caméra Pro X1* 📸\n\n✅ Vision nocturne 4K\n✅ Détection IA\n✅ Batterie 1 an\n\nPrix: 199€ (Promo -20% ce soir)",
+      [
+        { id: constants.BTN_BUY_CAM_PRO, title: "Commander ✅" },
+        { id: constants.BTN_BACK_PRODUCTS, title: "Retour Catalogue ↩️" },
+        { id: constants.BTN_TALK_HUMAN, title: "Question ?" }
+      ]
+    );
+    // );
+    // await GraphApi.messageWithUtilityTemplate(msgId, senderId, recipientId, {
+    //   templateName: constants.TPL_WELCOME, // "welcome_menu_v1"
+    //   locale: "fr",
+    //   imageLink: "https://via.placeholder.com/800x400?text=SecurHome", // Mets ton lien d'image ici
+    //   parameters: ["Bienvenue"] // Variable {{1}}
+    // });
     
     // On enchaîne immédiatement avec les boutons (car les templates n'ont que 2-3 boutons max parfois limités)
     // Ou mieux : Le template contient déjà les boutons Quick Reply (voir section Template ci-dessous)
