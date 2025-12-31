@@ -6,6 +6,7 @@ const constants = require("./constants");
 const GraphApi = require('./graph-api');
 const Message = require('./message');
 const Store = require('./store'); // Le fichier mémoire qu'on a créé
+import {AIService} from "./ai.service.ts";
 
 module.exports = class Conversation {
   constructor(phoneNumberId) {
@@ -45,21 +46,29 @@ module.exports = class Conversation {
 
     // --- 2. LOGIQUE DU BOT DE VENTE ---
 
+    // Intégration IA - RAG
     try {
-      // Analyse du type de message
       if (message.type === 'unknown' && rawMessage.type === 'text') {
-        // C'est un message texte libre de l'utilisateur
-        // TODO: Plus tard, c'est ICI que tu mettras GEMINI AI pour répondre intelligemment.
-        // Pour l'instant, on renvoie au menu si on ne comprend pas.
-        await this.sendWelcomeMenu(message.id, senderPhoneNumberId, userPhone);
+        // 1. Récupérer le texte de l'utilisateur
+        const userMessage = rawMessage.text.body;
+
+        // 2. Appeler l'IA pour générer une réponse basée sur l'Excel (Pinecone)
+        const aiResponse = await AIService.getSmartResponse(userPhone, userMessage);
+
+        // 3. Envoyer la réponse intelligente au lieu du menu par défaut
+        await GraphApi.sendTextMessage(senderPhoneNumberId, userPhone, aiResponse);
+                
+        //await this.sendWelcomeMenu(message.id, senderPhoneNumberId, userPhone);
+
       } 
       else {
-        // C'est une interaction (clic bouton)
         await this.routeButtonAction(message.id, senderPhoneNumberId, userPhone, message.type);
       }
-    } catch (error) {
-      console.error("Erreur dans le flux:", error);
-    }
+      } catch (error) {
+      console.error("Erreur dans le flux IA:", error);
+      // En cas d'erreur IA, on peut quand même envoyer le menu par sécurité
+      await this.sendWelcomeMenu(message.id, senderPhoneNumberId, userPhone);
+      }
   }
 
   // --- ROUTEUR DES ACTIONS (Switch Case géant) ---

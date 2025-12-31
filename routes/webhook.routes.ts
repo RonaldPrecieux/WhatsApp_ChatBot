@@ -1,35 +1,26 @@
-/**
- * Copyright 2021-present, Facebook, Inc. All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
+// routes/webhook.routes.js
 
 "use strict";
 
 const crypto = require('crypto');
-
-const { urlencoded, json } = require('body-parser');
+const { json } = require('body-parser');
 require('dotenv').config();
-const express = require('express');
+import express from 'express';
 
-const config = require('./services/config');
-const Conversation = require('./services/conversation');
-const Message = require('./services/message');
-const app = express();
+const config = require('../services/config');
+const Conversation = require('../services/conversation');
+const Message = require('../services/message');
+const router = express.Router();
 
-// Parse application/x-www-form-urlencoded
-app.use(
-  urlencoded({
-    extended: true
-  })
-);
+
+
 
 // Parse application/json. Verify that callback came from Facebook
-app.use(json({ verify: verifyRequestSignature }));
+router.use(json({ verify: verifyRequestSignature }));
 
 // Handle webhook verification handshake
-app.get("/webhook", function (req, res) {
+
+router.get("/webhook", function (req, res) {
   if (
     req.query["hub.mode"] != "subscribe" ||
     req.query["hub.verify_token"] != config.verifyToken
@@ -42,25 +33,25 @@ app.get("/webhook", function (req, res) {
 });
 
 // Handle incoming messages
-app.post('/webhook', (req, res) => {
+router.post('/webhook', (req, res) => {
   console.log(req.body);
 
   if (req.body.object === "whatsapp_business_account") {
-    req.body.entry.forEach(entry => {
+    req.body.entry.forEach((entry: { changes: any[]; }) => {
       entry.changes.forEach(change => {
         const value = change.value;
         if (value) {
           const senderPhoneNumberId = value.metadata.phone_number_id;
 
-          if (value.statuses) {
-            value.statuses.forEach(status => {
-              // Handle message status updates
-              Conversation.handleStatus(senderPhoneNumberId, status);
-            });
-          }
+          // if (value.statuses) {
+          //   value.statuses.forEach(status => {
+          //     // Handle message status updates
+          //     //Conversation.handleStatus(senderPhoneNumberId, status);
+          //   });
+          // }
 
           if (value.messages) {
-            value.messages.forEach(rawMessage => {
+            value.messages.forEach((rawMessage: any) => {
               // Respond to message
               Conversation.handleMessage(senderPhoneNumberId, rawMessage);
             });
@@ -74,7 +65,7 @@ app.post('/webhook', (req, res) => {
 });
 
 // Default route for health check
-app.get('/', (req, res) => {
+router.get('/', (req, res) => {
   res.json({
     message: 'Jasper\'s Market Server is running',
     endpoints: [
@@ -87,11 +78,15 @@ app.get('/', (req, res) => {
 config.checkEnvVariables();
 
 // Verify that the callback came from Facebook.
-function verifyRequestSignature(req, res, buf) {
+// Middleware spécifique pour vérifier la signature Facebook
+// On l'applique uniquement aux routes POST du webhook
+function verifyRequestSignature(req: { headers: { [x: string]: any; }; }, res: any, buf: any) {
   let signature = req.headers["x-hub-signature-256"];
 
   if (!signature) {
     console.warn(`Couldn't find "x-hub-signature-256" in headers.`);
+    console.warn("Signature absente.");
+    return;
   } else {
     let elements = signature.split("=");
     let signatureHash = elements[1];
@@ -105,7 +100,4 @@ function verifyRequestSignature(req, res, buf) {
   }
 }
 
-
-var listener = app.listen(config.port, () => {
-  console.log(`The app is listening on port ${listener.address().port}`);
-});
+module.exports = router;
