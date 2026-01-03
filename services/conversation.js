@@ -17,7 +17,7 @@ module.exports = class Conversation {
     const message = new Message(rawMessage);
     const userPhone = message.senderPhoneNumber;
     const messageBody = rawMessage.text?.body || ""; // Si c'est du texte
-
+    
     // --- 1. GESTION DU HANDOVER (PRIORITÉ ABSOLUE) ---
     
     // Commande : @takeover (L'humain prend le contrôle)
@@ -60,7 +60,19 @@ module.exports = class Conversation {
                 
         //await this.sendWelcomeMenu(message.id, senderPhoneNumberId, userPhone);
 
-      } 
+      }
+      else if (rawMessage.type === 'location') {
+        const lat = rawMessage.location.latitude;
+        const lng = rawMessage.location.longitude;
+        
+        // On crée un message "artificiel" pour l'IA
+        const messagePourIA = `L'utilisateur a envoyé sa localisation : https://www.google.com/maps?q=${lat},${lng}`;
+        
+        // On envoie ça à l'IA comme si l'utilisateur l'avait écrit
+        const aiResponse = await AIService.getSmartResponse(userPhone, messagePourIA);
+        await GraphApi.sendTextMessage(senderPhoneNumberId, userPhone, aiResponse);
+
+      }
       else {
         await this.routeButtonAction(message.id, senderPhoneNumberId, userPhone, message.type);
       }
@@ -117,7 +129,7 @@ module.exports = class Conversation {
     // Si tu n'as pas le template, utilise messageWithInteractiveReply avec une phrase d'accroche
      await GraphApi.messageWithInteractiveReply(
       msgId, senderId, recipientId,
-      "*Caméra Pro X1* 📸\n\n✅ Vision nocturne 4K\n✅ Détection IA\n✅ Batterie 1 an\n\nPrix: 199€ (Promo -20% ce soir)",
+      "**Lapin Fermier Premium** 🐇\n\n✅ Élevage local\n✅ Chair tendre\n✅ Qualité supérieure\n\nPrix : 3 500 / kg\n🔥 Promo : 3 000 / kg (jusqu’au 15 janvier)\nStocks limités",
       [
         { id: constants.BTN_BUY_CAM_PRO, title: "Commander ✅" },
         { id: constants.BTN_BACK_PRODUCTS, title: "Retour Catalogue ↩️" },
@@ -154,10 +166,10 @@ module.exports = class Conversation {
   static async sendProductCatalog(msgId, senderId, recipientId) {
     await GraphApi.messageWithInteractiveReply(
       msgId, senderId, recipientId,
-      "🔍 Quelle catégorie vous intéresse ?",
+      "🔍 Quelle catégorie de lapin vous intéresse ?",
       [
-        { id: constants.BTN_CAT_CAMERAS, title: "Caméras 📹" },
-        { id: constants.BTN_CAT_ALARMS, title: "Alarmes 🚨" },
+        { id: constants.BTN_CAT_CONSO, title: "Consomation" },
+        { id: constants.BTN_CAT_REPRO, title: "Reproduction 🚨" },
         { id: constants.BTN_BACK_HOME, title: "Retour Accueil 🏠" }
       ]
     );
