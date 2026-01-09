@@ -24,7 +24,7 @@ module.exports = Object.freeze({
   BTN_MENU_PRODUCTS: "menu_products",
   BTN_MENU_SERVICES: "menu_services",
   BTN_TALK_HUMAN: "talk_human",
-  
+  //categories
   BTN_CAT_CONSOMMATION: "cat_consommation",
   BTN_CAT_ELEVAGE: "cat_elevage",
 
