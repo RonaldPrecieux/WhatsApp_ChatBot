@@ -35,6 +35,8 @@
     "dotenv": "^16.0.3",
     "express": "^4.22.1",
     "facebook-nodejs-business-sdk": "^23.0.1",
+    "google-auth-library": "^10.5.0",
+    "googleapis": "^105.0.0",
     "ioredis": "^5.8.2",
     "redis": "^5.8.2"
   },

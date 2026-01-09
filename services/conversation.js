@@ -17,7 +17,7 @@ module.exports = class Conversation {
     const message = new Message(rawMessage);
     const userPhone = message.senderPhoneNumber;
     const messageBody = rawMessage.text?.body || ""; // Si c'est du texte
-
+    
     // --- 1. GESTION DU HANDOVER (PRIORITÉ ABSOLUE) ---
     
     // Commande : @takeover (L'humain prend le contrôle)
@@ -64,6 +64,18 @@ module.exports = class Conversation {
         //await this.sendWelcomeMenu(message.id, senderPhoneNumberId, userPhone);
 
       }
+      else if (rawMessage.type === 'location') {
+        const lat = rawMessage.location.latitude;
+        const lng = rawMessage.location.longitude;
+        
+        // On crée un message "artificiel" pour l'IA
+        const messagePourIA = `L'utilisateur a envoyé sa localisation : https://www.google.com/maps?q=${lat},${lng}`;
+        
+        // On envoie ça à l'IA comme si l'utilisateur l'avait écrit
+        const aiResponse = await AIService.getSmartResponse(userPhone, messagePourIA);
+        await GraphApi.sendTextMessage(senderPhoneNumberId, userPhone, aiResponse);
+
+      }
       else {
         // Pour les autres types de messages (boutons, etc.), on utilise le routeur classique
         if (message.type === 'interactive') {
@@ -86,19 +98,38 @@ module.exports = class Conversation {
 
   // --- FONCTIONS D'ENVOI (LES "STEPS") ---
 
-  // STEP 1: Message de bienvenue avec menu principal
-
- static async sendWelcomeMenu(msgId, senderId, recipientId) {
-    await GraphApi.messageWithInteractiveReply(
+  // STEP 1: Accueil
+  static async sendWelcomeMenu(msgId, senderId, recipientId) {
+  
+     await GraphApi.messageWithInteractiveReply(
       msgId, senderId, recipientId,
-      "👋 Bienvenue chez SecurHome.\nNous sécurisons ce qui compte pour vous.\n\nQue souhaitez-vous faire ?",
+      "**Lapin Fermier Premium** 🐇\n\n✅ Élevage local\n✅ Chair tendre\n✅ Qualité supérieure\n\nPrix : 3 500 / kg\n🔥 Promo : 3 000 / kg (jusqu’au 15 janvier)\nStocks limités",
       [
-        { id: constants.BTN_MENU_PRODUCTS, title: "Voir les Produits 📦" },
-        { id: constants.BTN_TALK_HUMAN, title: "Parler à un expert 📞" },
-        { id: constants.BTN_MENU_SERVICES, title: "Nos Services 🛠️" }
+        { id: constants.BTN_BUY_CAM_PRO, title: "Commander ✅" },
+        { id: constants.BTN_BACK_PRODUCTS, title: "Retour Catalogue ↩️" },
+        { id: constants.BTN_TALK_HUMAN, title: "Question ?" }
       ]
     );
+   //Template
+    // await GraphApi.messageWithUtilityTemplate(msgId, senderId, recipientId, {
+    //   templateName: constants.TPL_WELCOME, // "welcome_menu_v1"
+    //   locale: "fr",
+    //   imageLink: "https://via.placeholder.com/800x400?text=SecurHome", // Mets ton lien d'image ici
+    //   parameters: ["Bienvenue"] // Variable {{1}}
+    // });
   }
+
+//  static async sendWelcomeMenu(msgId, senderId, recipientId) {
+//     await GraphApi.messageWithInteractiveReply(
+//       msgId, senderId, recipientId,
+//       "👋 Bienvenue chez SecurHome.\nNous sécurisons ce qui compte pour vous.\n\nQue souhaitez-vous faire ?",
+//       [
+//         { id: constants.BTN_MENU_PRODUCTS, title: "Voir les Produits 📦" },
+//         { id: constants.BTN_TALK_HUMAN, title: "Parler à un expert 📞" },
+//         { id: constants.BTN_MENU_SERVICES, title: "Nos Services 🛠️" }
+//       ]
+//     );
+//   }
 
   // STEP 2: Catalogue
   static async sendProductCatalog(msgId, senderId, recipientId) {
@@ -107,7 +138,7 @@ module.exports = class Conversation {
       "🔍 Quelle catégorie de Lapin vous intéresse ?",
       [
         { id: constants.BTN_CAT_CONSOMMATION, title: "Consommation " },
-        { id: constants.BTN_CAT_ELEVAGE, title: "Elevage" },
+        { id: constants.BTN_CAT_ELEVAGE, title: "Reproduction" },
         { id: constants.BTN_BACK_HOME, title: "Retour Accueil 🏠" }
       ]
     );

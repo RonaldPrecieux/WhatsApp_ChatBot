@@ -6,6 +6,8 @@ const config = require("./config");
 const api = new FacebookAdsApi(config.accessToken);
 
 module.exports = class GraphApi {
+  //mesageId est le message précedent à marquer comme lu / pour lequel on affiche le typing indicator
+  //avant d'envoyer le nouveau message
   static async #makeApiCall(messageId, senderPhoneNumberId, requestBody) {
     try {
       // Mark as read and send typing indicator

@@ -2,14 +2,15 @@
 
 module.exports = Object.freeze({
   // CONFIG
-  ADMIN_PHONE_NUMBER: "33758796551", // REMPLACE PAR TON NUMÉRO (format international sans +)
+  ADMIN_PHONE_NUMBER: "22965611313", // REMPLACE PAR TON NUMÉRO (format international sans +)
 
+  
   // COMMANDES SPECIALES
   CMD_TAKEOVER: "@takeover", // L'humain prend la main
   CMD_BOT: "@bot",           // Le bot reprend la main
 
   // MESSAGES TEXTE
-  MSG_WELCOME: "Bienvenue chez Lapiro.",
+  MSG_WELCOME: "Bienvenue chez Lapiro. Consommez du Lapin comme vous voulez !!!!",
   MSG_HANDOVER_START: "👨‍💻 Un conseiller va prendre le relais. Le bot est en pause.",
   MSG_HANDOVER_END: "🤖 Le bot est de retour en ligne.",
   MSG_FALLBACK: "Je n'ai pas compris. Voici ce que je peux faire :",
