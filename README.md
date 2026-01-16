@@ -1,6 +1,6 @@
-# Jasper's Market WhatsApp Bot
+# Lapiro's Market WhatsApp Bot
 
-Jasper's Market is a fictional grocery brand created to showcase key features of the WhatsApp Business Platform. The bot leverages key features to deliver a great customer experience. Using this demo as inspiration, you can create a delightful WhatsApp experience that leverages both automation and live customer support.
+Lapiro's Market is a fictional grocery brand created to showcase key features of the WhatsApp Business Platform. The bot leverages key features to deliver a great customer experience. Using this demo as inspiration, you can create a delightful WhatsApp experience that leverages both automation and live customer support.
 
 [Access the WhatsApp experience](https://wa.me/15558813169?text=Get+started)
 
@@ -14,6 +14,21 @@ See the [Developer Documentation on this experience](https://developers.facebook
 - **Meta App:** Contains the settings for your WhatsApp automation, including access tokens. To create a new app, visit your [app dashboard](https://developers.facebook.com/apps).
 - **Meta Business:** This is a pre-requisite for building with WhatsApp. If you don't have a business, you can create one in the app creation flow.
 - **WhatsApp Business Account:** This is needed to send and receive messages in WhatsApp. To create a new WhatsApp Business account, visit [Meta Business Suite](https://business.facebook.com/latest).
+
+## Features
+
+This WhatsApp bot includes the following features:
+
+1. **Order Management via Excel:**
+   - Collects and records customer orders directly into an Excel file.
+   - Uses Excel as the central source for order storage and processing.
+   - Captures and stores the customer's location to support delivery and logistics.
+
+2. **RAG-Based Knowledge Retrieval (Excel-Driven):**
+   - Uses an Excel file as the knowledge base for the agent (products, rules, responses).
+   - Retrieves relevant information from Excel to answer customer questions.
+   - Drives the conversation logic and decision-making based on Excel data.
+
 
 ## Setup Steps
 
@@ -39,8 +54,8 @@ Before you begin, make sure you have completed all of the requirements listed ab
 Clone this repository on your local machine:
 
 ```bash
-$ git clone git@github.com:fbsamples/whatsapp-business-jaspers-market.git
-$ cd whatsapp-business-jaspers-market
+$ git clone https://github.com/RonaldPrecieux/WhatsApp_ChatBot.git
+$ cd WhatsApp_ChatBot
 ```
 
 You will need:
@@ -120,7 +135,7 @@ Edit the `.env` file to add all the saved secrets. Note that `VERIFY_TOKEN` will
 #### 6. Run your app locally
 
 ```bash
-node app.js
+npx tsx app.ts
 ```
 
 #### 7. Configure your webhook subscription
@@ -137,7 +152,7 @@ If you see a response to your message in WhatsApp, you have fully set up your ap
 
 ## License
 
-Sample WhatsApp App Jasper's Market is Apache 2.0 licensed, as found in the LICENSE file.
+Sample WhatsApp App Lapiro's Market is Apache 2.0 licensed, as found in the LICENSE file.
 
 See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
 

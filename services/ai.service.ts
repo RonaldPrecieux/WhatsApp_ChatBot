@@ -177,7 +177,9 @@ export class AIService {
     currentHistory.push({ role: "assistant", content: output });
     await redis.set(`chat_history:${userPhone}`, JSON.stringify(currentHistory), "EX", 86400);
   }
+  
 }
+
 
 
 
